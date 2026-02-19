@@ -1,0 +1,29 @@
+package example
+
+// This is a very long comment that should be rewrapped
+// because it exceeds the typical column width of 80
+// characters and goes on and on with more text.
+
+// This is a short comment.
+
+// This is a multi-line comment block that has been manually
+// wrapped at an awkward width. It should be rewrapped to
+// fill the lines properly up to the column width.
+
+// =======================================
+// Decoration lines should be preserved.
+// =======================================
+
+/*
+ * This is a block comment that contains a lot of text and
+ * should be rewrapped to fit within the column width
+ * properly when processed.
+ */
+
+func Example() {
+	// This is an indented comment that is also very long
+	// and should be rewrapped to fit within the specified
+	// column width while preserving the indentation level.
+	x := 1
+	_ = x
+}

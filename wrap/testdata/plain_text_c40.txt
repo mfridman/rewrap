@@ -1,0 +1,5 @@
+This is a long line of plain text that should be wrapped at forty columns because it is much too long.
+
+This is a second paragraph that also needs to be wrapped properly while preserving the paragraph break.
+
+Short line.
