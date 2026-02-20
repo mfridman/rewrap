@@ -1,0 +1,16 @@
+package example
+
+// See
+// https://pkg.go.dev/github.com/some/very/long/package/path/that/exceeds/the/column/width
+// for more details.
+
+// For more information see the specification at
+// https://example.com/spec and the implementation at
+// https://example.com/impl for reference.
+
+// Short comment with a short URL: https://example.com
+
+// Multiple URLs in one comment:
+// https://example.com/first/path and
+// https://example.com/second/path/that/is/longer and then
+// some trailing text.

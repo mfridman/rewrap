@@ -1,0 +1,26 @@
+package example
+
+/* Single-line block comment should be left alone. */
+
+/* Text on the opening line that is very long and should probably be rewrapped to fit within the column width.
+*/
+
+/*
+Text on the closing line that is very long and should be rewrapped. */
+
+/* Opening text.
+ * Middle line with star prefix that is very long and needs to be rewrapped to fit within the column width.
+ * Closing text. */
+
+/*
+ * JavaDoc style with multiple paragraphs.
+ *
+ * This is the second paragraph that is long enough to need rewrapping to fit within sixty characters.
+ */
+
+func Example() {
+	/*
+	 * Indented block comment inside a function body that has enough text to need rewrapping.
+	 */
+	_ = 1
+}

@@ -1,0 +1,12 @@
+package example
+
+func Outer() {
+	// First level indented comment that is long enough to need rewrapping to fit within the specified column width of eighty characters.
+	if true {
+		// Second level indented comment that is also quite long and should be rewrapped to fit within the specified column width accounting for the deeper indentation.
+		for i := 0; i < 10; i++ {
+			// Third level indented comment that needs to be rewrapped accounting for the even deeper indentation level which leaves less room for text.
+			_ = i
+		}
+	}
+}

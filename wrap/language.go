@@ -13,6 +13,7 @@ type Language struct {
 	BlockStart  []string // e.g., "/*"
 	BlockEnd    []string // e.g., "*/"
 	BlockPrefix string   // e.g., " * " for JavaDoc-style
+	Directives  []string // prefixes (after line marker) that indicate a directive, not a comment
 }
 
 var languages = []Language{
@@ -22,6 +23,7 @@ var languages = []Language{
 		LineMarkers: []string{"//"},
 		BlockStart:  []string{"/*"},
 		BlockEnd:    []string{"*/"},
+		Directives:  []string{"go:", "line ", "export ", "nolint"},
 	},
 	{
 		Name:        "c",

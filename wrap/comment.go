@@ -109,8 +109,14 @@ func matchLineComment(line string, lang *Language) (indent, marker string, ok bo
 	indent = line[:len(line)-len(trimmed)]
 	for _, m := range lang.LineMarkers {
 		if strings.HasPrefix(trimmed, m) {
-			// The marker is the comment token plus one trailing space if present.
 			rest := trimmed[len(m):]
+			// Check if the remaining text is a directive -- if so, treat the line as code.
+			for _, d := range lang.Directives {
+				if strings.HasPrefix(rest, d) {
+					return "", "", false
+				}
+			}
+			// The marker is the comment token plus one trailing space if present.
 			if len(rest) > 0 && rest[0] == ' ' {
 				marker = m + " "
 			} else {

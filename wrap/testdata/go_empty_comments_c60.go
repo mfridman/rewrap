@@ -1,0 +1,15 @@
+package example
+
+//
+// A comment preceded and followed by bare comment markers.
+//
+
+// Comment with trailing blank marker.
+//
+
+//
+// Comment with leading blank marker.
+
+// Normal comment.
+//
+// Separated by a blank marker line from another paragraph that is long enough to need rewrapping within sixty columns.
