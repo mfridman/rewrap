@@ -1,6 +1,6 @@
-package example
-
 //go:build linux && amd64
+
+package example
 
 //go:generate stringer -type=Kind
 

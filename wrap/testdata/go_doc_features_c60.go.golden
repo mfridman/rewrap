@@ -20,9 +20,9 @@ package example
 //
 // And a code block:
 //
-// 	func hello() {
-// 	    fmt.Println("hello")
-// 	}
+//	func hello() {
+//	    fmt.Println("hello")
+//	}
 //
 // The code block above should not be rewrapped.
 func Example() {}

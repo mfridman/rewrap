@@ -50,8 +50,30 @@ func splitParagraphs(text string) []string {
 
 // wrapParagraph wraps a single paragraph of text using greedy line breaking.
 func wrapParagraph(text string, prefix, subsequentPrefix string, columnWidth, tabWidth int, isFirst bool) []string {
-	words := strings.Fields(text)
-	if len(words) == 0 {
+	// Split into tokens that preserve the original inter-word spacing. Each token has the
+	// whitespace that preceded it (empty for the first token) and the word text.
+	type token struct {
+		gap  string // whitespace before this word in the original text
+		word string
+	}
+	var tokens []token
+	i := 0
+	for i < len(text) {
+		gapStart := i
+		for i < len(text) && (text[i] == ' ' || text[i] == '\t') {
+			i++
+		}
+		if i >= len(text) {
+			break
+		}
+		gap := text[gapStart:i]
+		wordStart := i
+		for i < len(text) && text[i] != ' ' && text[i] != '\t' {
+			i++
+		}
+		tokens = append(tokens, token{gap: gap, word: text[wordStart:i]})
+	}
+	if len(tokens) == 0 {
 		return nil
 	}
 
@@ -66,24 +88,33 @@ func wrapParagraph(text string, prefix, subsequentPrefix string, columnWidth, ta
 	var line strings.Builder
 	lineWidth := 0
 
-	for _, word := range words {
-		wordWidth := displayWidth(word, tabWidth)
+	for idx, tok := range tokens {
+		wordWidth := displayWidth(tok.word, tabWidth)
 		if line.Len() > 0 {
-			// Check if adding this word (with space) would exceed the available width.
-			if lineWidth+1+wordWidth > available {
-				// Emit current line.
+			gapWidth := displayWidth(tok.gap, tabWidth)
+			if idx == 0 {
+				gapWidth = 0
+			}
+			// Use a single space as the minimum gap for wrapping decisions.
+			breakWidth := max(gapWidth, 1)
+			if lineWidth+breakWidth+wordWidth > available {
 				lines = append(lines, currentPrefix+line.String())
 				line.Reset()
 				lineWidth = 0
-				// Switch to subsequent prefix for remaining lines.
 				currentPrefix = subsequentPrefix
 				available = max(columnWidth-displayWidth(currentPrefix, tabWidth), 1)
 			} else {
-				line.WriteByte(' ')
-				lineWidth++
+				// Preserve original spacing within a line.
+				if gapWidth > 0 {
+					line.WriteString(tok.gap)
+				} else {
+					line.WriteByte(' ')
+					gapWidth = 1
+				}
+				lineWidth += gapWidth
 			}
 		}
-		line.WriteString(word)
+		line.WriteString(tok.word)
 		lineWidth += wordWidth
 	}
 	if line.Len() > 0 {

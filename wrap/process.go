@@ -1,7 +1,6 @@
 package wrap
 
 import (
-	"bytes"
 	"go/doc/comment"
 	"strings"
 )
@@ -73,14 +72,27 @@ func rewrapLineComments(seg segment, lang *Language, column, tabWidth int) []str
 		if runStart < 0 || runStart >= end {
 			return
 		}
+		if lang.Name == "go" && strings.TrimSpace(seg.marker) == "//" {
+			var textLines []string
+			for _, cl := range lines[runStart:end] {
+				stripped := strings.TrimLeft(cl.raw, " \t")
+				if strings.HasPrefix(stripped, "// ") {
+					textLines = append(textLines, stripped[3:]) // strip "// "
+				} else if strings.HasPrefix(stripped, "//\t") {
+					textLines = append(textLines, stripped[2:]) // strip "//", keep tab
+				} else {
+					textLines = append(textLines, "")
+				}
+			}
+			out = append(out, rewrapGoDocComment(textLines, seg.indent, column, tabWidth)...)
+			runStart = -1
+			return
+		}
 		var textLines []string
 		for _, cl := range lines[runStart:end] {
 			textLines = append(textLines, cl.content)
 		}
-		// For Go line comments using "//", use go/doc/comment for proper doc comment handling.
-		if lang.Name == "go" && strings.TrimSpace(seg.marker) == "//" {
-			out = append(out, rewrapGoDocComment(textLines, seg.indent, column, tabWidth)...)
-		} else {
+		{
 			joined := strings.Join(textLines, "\n")
 			prefix := seg.indent + seg.marker
 			out = append(out, wrapText(joined, prefix, prefix, column, tabWidth)...)
@@ -101,36 +113,144 @@ func rewrapLineComments(seg segment, lang *Language, column, tabWidth int) []str
 	return out
 }
 
-// rewrapGoDocComment uses go/doc/comment to rewrap Go doc comments with proper understanding of doc
-// comment syntax (links, lists, code blocks, headings).
+// rewrapGoDocComment rewraps Go doc comments using comment.Parser for structure detection, then
+// renders each block directly to preserve original text content (whitespace, doc link brackets).
+// The textLines parameter contains lines with "//" stripped (preserving leading space or tab).
 func rewrapGoDocComment(textLines []string, indent string, column, tabWidth int) []string {
-	// go/doc/comment expects the raw text without comment markers.
+	prefix := indent + "// "
+	bareMarker := indent + "//"
+
+	// Count leading and trailing blank lines that comment.Parser would strip.
+	leadingBlanks := 0
+	for _, l := range textLines {
+		if strings.TrimSpace(l) == "" {
+			leadingBlanks++
+		} else {
+			break
+		}
+	}
+	trailingBlanks := 0
+	for i := len(textLines) - 1; i >= leadingBlanks; i-- {
+		if strings.TrimSpace(textLines[i]) == "" {
+			trailingBlanks++
+		} else {
+			break
+		}
+	}
+
 	docText := strings.Join(textLines, "\n")
 
 	var p comment.Parser
 	doc := p.Parse(docText)
 
-	// TextWidth is the width available for text content (excluding the prefix).
-	prefix := "// "
-	prefixWidth := displayWidth(indent+prefix, tabWidth)
-	pr := comment.Printer{
-		TextPrefix: prefix,
-		TextWidth:  column - prefixWidth,
+	if len(doc.Content) == 0 {
+		var result []string
+		for range leadingBlanks + trailingBlanks {
+			result = append(result, bareMarker)
+		}
+		return result
 	}
-	result := pr.Text(doc)
-	result = bytes.TrimRight(result, "\n")
 
-	lines := strings.Split(string(result), "\n")
-	// Add indentation if the comment was indented.
-	if indent != "" {
-		for i, line := range lines {
-			if line != "" {
-				lines[i] = indent + line
+	var result []string
+	for range leadingBlanks {
+		result = append(result, bareMarker)
+	}
+
+	for i, block := range doc.Content {
+		if i > 0 {
+			// A list directly following a paragraph (no blank line) omits the separator
+			// unless the list's ForceBlankBefore flag is set.
+			addBlank := true
+			if list, ok := block.(*comment.List); ok {
+				if _, prevIsPara := doc.Content[i-1].(*comment.Paragraph); prevIsPara {
+					addBlank = list.ForceBlankBefore
+				}
+			}
+			if addBlank {
+				result = append(result, bareMarker)
+			}
+		}
+		switch b := block.(type) {
+		case *comment.Paragraph:
+			text := docInlineText(b.Text)
+			result = append(result, wrapText(text, prefix, prefix, column, tabWidth)...)
+		case *comment.Code:
+			lines := strings.Split(strings.TrimRight(b.Text, "\n"), "\n")
+			for _, line := range lines {
+				if line == "" {
+					result = append(result, bareMarker)
+				} else {
+					result = append(result, bareMarker+"\t"+line)
+				}
+			}
+		case *comment.Heading:
+			result = append(result, prefix+"# "+docInlineText(b.Text))
+		case *comment.List:
+			result = append(result, renderDocList(b, prefix, bareMarker, column, tabWidth)...)
+		}
+	}
+
+	for range trailingBlanks {
+		result = append(result, bareMarker)
+	}
+
+	return result
+}
+
+// docInlineText extracts the text content from a slice of comment.Text nodes, preserving original
+// whitespace and rendering doc links with their [bracket] syntax.
+func docInlineText(texts []comment.Text) string {
+	var b strings.Builder
+	for _, t := range texts {
+		switch t := t.(type) {
+		case comment.Plain:
+			b.WriteString(string(t))
+		case comment.Italic:
+			b.WriteString(string(t))
+		case *comment.Link:
+			b.WriteString(docInlineText(t.Text))
+		case *comment.DocLink:
+			b.WriteByte('[')
+			b.WriteString(docInlineText(t.Text))
+			b.WriteByte(']')
+		}
+	}
+	return b.String()
+}
+
+// renderDocList renders a comment.List using appropriate bullet/number prefixes and wrapText.
+func renderDocList(list *comment.List, prefix, bareMarker string, column, tabWidth int) []string {
+	var result []string
+	for i, item := range list.Items {
+		if i > 0 && list.ForceBlankBetween {
+			result = append(result, bareMarker)
+		}
+		var bullet string
+		if item.Number != "" {
+			bullet = item.Number + ". "
+		} else {
+			bullet = "- "
+		}
+		firstPrefix := prefix + "  " + bullet
+		contPrefix := prefix + "  " + strings.Repeat(" ", len(bullet))
+
+		for j, block := range item.Content {
+			if j > 0 {
+				result = append(result, bareMarker)
+			}
+			if para, ok := block.(*comment.Paragraph); ok {
+				text := docInlineText(para.Text)
+				if j == 0 {
+					result = append(result, wrapText(text, firstPrefix, contPrefix, column, tabWidth)...)
+				} else {
+					result = append(result, wrapText(text, contPrefix, contPrefix, column, tabWidth)...)
+				}
 			}
 		}
 	}
-	return lines
+	return result
 }
+
 
 // rewrapBlockComment rewraps a block comment (/* ... */).
 func rewrapBlockComment(seg segment, lang *Language, column, tabWidth int) []string {
