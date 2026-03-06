@@ -11,7 +11,8 @@ import (
 )
 
 // processMarkdown rewraps paragraph text in Markdown source while preserving all structural
-// elements (headings, code blocks, lists, blockquotes, tables, thematic breaks, HTML) verbatim.
+// elements (headings, code blocks, blockquotes, tables, thematic breaks, HTML) verbatim.
+// Paragraphs inside list items are rewrapped with their marker/indentation preserved.
 func processMarkdown(src []byte, column, tabWidth int) []byte {
 	// Normalize line endings.
 	normalized := bytes.ReplaceAll(src, []byte("\r\n"), []byte("\n"))
@@ -23,28 +24,67 @@ func processMarkdown(src []byte, column, tabWidth int) []byte {
 
 	lines := strings.Split(string(normalized), "\n")
 
-	// Build a set of line indices that belong to top-level paragraphs (0-indexed).
-	type lineRange struct {
-		start int // inclusive
-		end   int // exclusive
+	type paragraphInfo struct {
+		start       int    // inclusive line number (0-indexed)
+		end         int    // exclusive line number
+		firstPrefix string // prefix for first wrapped line
+		contPrefix  string // prefix for continuation wrapped lines
+		text        string // text content from segments (markers stripped)
 	}
-	var paragraphs []lineRange
+	var paragraphs []paragraphInfo
 
-	for child := doc.FirstChild(); child != nil; child = child.NextSibling() {
-		if child.Kind() != ast.KindParagraph {
-			continue
+	// Walk the full AST to find paragraphs at any nesting depth.
+	ast.Walk(doc, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering || (node.Kind() != ast.KindParagraph && node.Kind() != ast.KindTextBlock) {
+			return ast.WalkContinue, nil
 		}
-		// Get the line range from the paragraph's text segments.
-		segs := child.Lines()
+		segs := node.Lines()
 		if segs.Len() == 0 {
-			continue
+			return ast.WalkContinue, nil
 		}
+
+		parent := node.Parent()
+		if parent == nil {
+			return ast.WalkContinue, nil
+		}
+
+		// Only process paragraphs in contexts we understand.
+		var firstPrefix, contPrefix string
+		switch parent.Kind() {
+		case ast.KindDocument:
+			// Top-level paragraph, no prefix.
+		case ast.KindListItem:
+			// Inside a list item - derive prefix from source.
+			firstSeg := segs.At(0)
+			lineStart := lineStartOffset(normalized, firstSeg.Start)
+			firstPrefix = string(normalized[lineStart:firstSeg.Start])
+			contPrefix = strings.Repeat(" ", displayWidth(firstPrefix, tabWidth))
+		default:
+			// Inside blockquote or other structure - skip.
+			return ast.WalkContinue, nil
+		}
+
 		firstSeg := segs.At(0)
 		lastSeg := segs.At(segs.Len() - 1)
 		startLine := byteOffsetToLine(normalized, firstSeg.Start)
 		endLine := byteOffsetToLine(normalized, lastSeg.Stop-1) + 1
-		paragraphs = append(paragraphs, lineRange{start: startLine, end: endLine})
-	}
+
+		// Extract text content from segments (markers already stripped by parser).
+		var segTexts []string
+		for i := 0; i < segs.Len(); i++ {
+			seg := segs.At(i)
+			segTexts = append(segTexts, strings.TrimRight(string(normalized[seg.Start:seg.Stop]), "\n\r"))
+		}
+
+		paragraphs = append(paragraphs, paragraphInfo{
+			start:       startLine,
+			end:         endLine,
+			firstPrefix: firstPrefix,
+			contPrefix:  contPrefix,
+			text:        strings.Join(segTexts, "\n"),
+		})
+		return ast.WalkContinue, nil
+	})
 
 	// Build output by processing line ranges.
 	var out []string
@@ -55,10 +95,7 @@ func processMarkdown(src []byte, column, tabWidth int) []byte {
 			out = append(out, lines[i])
 			i++
 		}
-		// Extract paragraph text and rewrap.
-		paraLines := lines[p.start:p.end]
-		joined := strings.Join(paraLines, "\n")
-		wrapped := wrapText(joined, "", "", column, tabWidth)
+		wrapped := wrapText(p.text, p.firstPrefix, p.contPrefix, column, tabWidth)
 		out = append(out, wrapped...)
 		i = p.end
 	}
@@ -74,6 +111,16 @@ func processMarkdown(src []byte, column, tabWidth int) []byte {
 		result += "\n"
 	}
 	return []byte(result)
+}
+
+// lineStartOffset returns the byte offset of the start of the line containing the given offset.
+func lineStartOffset(src []byte, offset int) int {
+	for i := offset - 1; i >= 0; i-- {
+		if src[i] == '\n' {
+			return i + 1
+		}
+	}
+	return 0
 }
 
 // byteOffsetToLine converts a byte offset in src to a 0-indexed line number.

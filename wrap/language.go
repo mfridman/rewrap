@@ -112,12 +112,18 @@ func LanguageFromFilename(filename string) *Language {
 	return LanguageFromExtension(filepath.Ext(filename))
 }
 
-// LanguageFromName returns the language by its name (case-insensitive).
+// LanguageFromName returns the language by its name or extension alias (case-insensitive). For
+// example, both "markdown" and "md" match the Markdown language.
 func LanguageFromName(name string) *Language {
 	lower := strings.ToLower(name)
 	for i := range languages {
 		if languages[i].Name == lower {
 			return &languages[i]
+		}
+		for _, ext := range languages[i].Extensions {
+			if "."+lower == ext || lower == ext {
+				return &languages[i]
+			}
 		}
 	}
 	return nil

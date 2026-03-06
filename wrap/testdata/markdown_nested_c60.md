@@ -5,11 +5,11 @@ A paragraph before nested structures that is long enough to need rewrapping to f
 > > Nested blockquote that should also be preserved as-is.
 
 - List item one
-  - Nested list item that is long enough to potentially cause issues with the wrapper
+  - Nested list item that is long enough to be rewrapped to fit the column width
     - Deeply nested item
 
 1. Ordered item
-   1. Nested ordered item that is quite long and should not be touched by the wrapper
+   1. Nested ordered item that is quite long and should be rewrapped by the tool
 
 A paragraph between structures that is long enough to need rewrapping to fit within the column width.
 
