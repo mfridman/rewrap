@@ -34,7 +34,7 @@ func processMarkdown(src []byte, column, tabWidth int) []byte {
 	var paragraphs []paragraphInfo
 
 	// Walk the full AST to find paragraphs at any nesting depth.
-	ast.Walk(doc, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+	_ = ast.Walk(doc, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering || (node.Kind() != ast.KindParagraph && node.Kind() != ast.KindTextBlock) {
 			return ast.WalkContinue, nil
 		}
@@ -49,23 +49,30 @@ func processMarkdown(src []byte, column, tabWidth int) []byte {
 		}
 
 		// Only process paragraphs in contexts we understand.
+		firstSeg := segs.At(0)
+		lastSeg := segs.At(segs.Len() - 1)
+
+		// For non-document parents, derive the prefix from source.
+		lineStart := lineStartOffset(normalized, firstSeg.Start)
+		srcPrefix := string(normalized[lineStart:firstSeg.Start])
+
 		var firstPrefix, contPrefix string
 		switch parent.Kind() {
 		case ast.KindDocument:
 			// Top-level paragraph, no prefix.
+		case ast.KindBlockquote:
+			firstPrefix = srcPrefix
+			contPrefix = srcPrefix
 		case ast.KindListItem:
-			// Inside a list item - derive prefix from source.
-			firstSeg := segs.At(0)
-			lineStart := lineStartOffset(normalized, firstSeg.Start)
-			firstPrefix = string(normalized[lineStart:firstSeg.Start])
-			contPrefix = strings.Repeat(" ", displayWidth(firstPrefix, tabWidth))
+			firstPrefix = srcPrefix
+			// Preserve blockquote markers ("> ") in continuation prefix, replacing
+			// only the list-marker portion with spaces.
+			bqPrefix := blockquotePrefix(srcPrefix)
+			contPrefix = bqPrefix + strings.Repeat(" ", displayWidth(srcPrefix, tabWidth)-displayWidth(bqPrefix, tabWidth))
 		default:
-			// Inside blockquote or other structure - skip.
+			// Inside other structure - skip.
 			return ast.WalkContinue, nil
 		}
-
-		firstSeg := segs.At(0)
-		lastSeg := segs.At(segs.Len() - 1)
 		startLine := byteOffsetToLine(normalized, firstSeg.Start)
 		endLine := byteOffsetToLine(normalized, lastSeg.Stop-1) + 1
 
@@ -111,6 +118,22 @@ func processMarkdown(src []byte, column, tabWidth int) []byte {
 		result += "\n"
 	}
 	return []byte(result)
+}
+
+// blockquotePrefix returns the blockquote marker portion of a line prefix.
+// For "> - " it returns "> ", for "> > - " it returns "> > ", and for "- " it returns "".
+func blockquotePrefix(prefix string) string {
+	end := 0
+	for i := 0; i < len(prefix); i++ {
+		if prefix[i] == '>' {
+			if i+1 < len(prefix) && prefix[i+1] == ' ' {
+				end = i + 2
+			} else {
+				end = i + 1
+			}
+		}
+	}
+	return prefix[:end]
 }
 
 // lineStartOffset returns the byte offset of the start of the line containing the given offset.

@@ -44,7 +44,8 @@ Contributions are welcome! Please read the contributing guidelines before
 submitting a pull request. Make sure all tests pass and add new tests for any
 new functionality that you introduce.
 
-> Note: this project follows semantic versioning. Please make sure your changes are backwards compatible unless you are working on a major version bump.
+> Note: this project follows semantic versioning. Please make sure your changes
+> are backwards compatible unless you are working on a major version bump.
 
 1. Fork the repository
 2. Create a feature branch

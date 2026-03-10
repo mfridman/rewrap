@@ -1,7 +1,8 @@
 A paragraph before nested structures that is long enough to
 need rewrapping to fit within sixty characters.
 
-> Blockquote with a very long line that should be preserved verbatim without any rewrapping.
+> Blockquote with a very long line that should be preserved
+> verbatim without any rewrapping.
 >
 > > Nested blockquote that should also be preserved as-is.
 
@@ -17,7 +18,8 @@ need rewrapping to fit within sixty characters.
 A paragraph between structures that is long enough to need
 rewrapping to fit within the column width.
 
-> > Double-nested blockquote directly without an outer blockquote wrapper.
+> > Double-nested blockquote directly without an outer
+> > blockquote wrapper.
 
 Final paragraph that is long enough to need rewrapping to
 fit within sixty characters for testing.

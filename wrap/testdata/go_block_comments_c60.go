@@ -3,7 +3,7 @@ package example
 /* Single-line block comment should be left alone. */
 
 /* Text on the opening line that is very long and should probably be rewrapped to fit within the column width.
-*/
+ */
 
 /*
 Text on the closing line that is very long and should be rewrapped. */

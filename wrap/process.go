@@ -251,7 +251,6 @@ func renderDocList(list *comment.List, prefix, bareMarker string, column, tabWid
 	return result
 }
 
-
 // rewrapBlockComment rewraps a block comment (/* ... */).
 func rewrapBlockComment(seg segment, lang *Language, column, tabWidth int) []string {
 	if len(seg.lines) == 0 {

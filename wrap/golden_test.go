@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +24,7 @@ func TestGolden(t *testing.T) {
 	// Filter out golden files.
 	var testFiles []string
 	for _, f := range inputs {
-		if filepath.Ext(f) != ".golden" {
+		if !isGoldenFile(f) {
 			testFiles = append(testFiles, f)
 		}
 	}
@@ -50,7 +51,7 @@ func TestGolden(t *testing.T) {
 
 			got := Source(src, lang, column, 4)
 
-			goldenPath := inputPath + ".golden"
+			goldenPath := goldenFilePath(inputPath)
 			if *update {
 				require.NoError(t, os.WriteFile(goldenPath, got, 0o644))
 				t.Logf("updated %s", goldenPath)
@@ -69,7 +70,7 @@ func TestIdempotent(t *testing.T) {
 	require.NoError(t, err)
 	var testFiles []string
 	for _, f := range inputs {
-		if filepath.Ext(f) != ".golden" {
+		if !isGoldenFile(f) {
 			testFiles = append(testFiles, f)
 		}
 	}
@@ -97,4 +98,20 @@ func TestIdempotent(t *testing.T) {
 			assert.Equal(t, string(pass1), string(pass2), "output is not idempotent")
 		})
 	}
+}
+
+func isGoldenFile(path string) bool {
+	name := filepath.Base(path)
+	return filepath.Ext(name) == ".golden" || strings.Contains(name, ".golden.")
+}
+
+// goldenFilePath returns the golden file path for the given input path. Go files use
+// "<name>.go.golden" to avoid being compiled, all others use "<name>.golden.<ext>" so
+// editors can preview them with proper syntax highlighting.
+func goldenFilePath(inputPath string) string {
+	ext := filepath.Ext(inputPath)
+	if ext == ".go" {
+		return inputPath + ".golden"
+	}
+	return strings.TrimSuffix(inputPath, ext) + ".golden" + ext
 }
