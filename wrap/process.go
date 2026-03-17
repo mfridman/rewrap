@@ -231,8 +231,8 @@ func renderDocList(list *comment.List, prefix, bareMarker string, column, tabWid
 		} else {
 			bullet = "- "
 		}
-		firstPrefix := prefix + "  " + bullet
-		contPrefix := prefix + "  " + strings.Repeat(" ", len(bullet))
+		firstPrefix := prefix + " " + bullet
+		contPrefix := prefix + " " + strings.Repeat(" ", len(bullet))
 
 		for j, block := range item.Content {
 			if j > 0 {

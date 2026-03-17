@@ -3,12 +3,12 @@
 // arguments.
 //
 // Key features:
-//   - Nested subcommands for organizing complex CLIs
-//   - Flexible flag parsing, allowing flags anywhere in arguments
-//   - Parent-to-child flag inheritance
-//   - Type-safe flag access
-//   - Automatic help text generation
-//   - Command suggestions for misspelled inputs
+//  - Nested subcommands for organizing complex CLIs
+//  - Flexible flag parsing, allowing flags anywhere in arguments
+//  - Parent-to-child flag inheritance
+//  - Type-safe flag access
+//  - Automatic help text generation
+//  - Command suggestions for misspelled inputs
 //
 // Quick example:
 //

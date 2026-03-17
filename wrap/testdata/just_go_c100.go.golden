@@ -19,16 +19,16 @@ type RunOptions struct {
 // default limitation of stopping flag parsing upon encountering the first positional argument. For
 // more details, see:
 //
-//   - https://github.com/golang/go/issues/4513
-//   - https://github.com/golang/go/issues/63138
+//  - https://github.com/golang/go/issues/4513
+//  - https://github.com/golang/go/issues/63138
 //
 // This is a bit unfortunate, but most users nowadays consuming CLI tools expect this behavior.
 
 // Exit codes:
-//   - 0: successful completion
-//   - 1: run function returned an error
-//   - 124: shutdown timeout exceeded
-//   - 130: forced shutdown (second signal or immediate termination)
+//  - 0: successful completion
+//  - 1: run function returned an error
+//  - 124: shutdown timeout exceeded
+//  - 130: forced shutdown (second signal or immediate termination)
 //
 // Example: HTTP server
 //

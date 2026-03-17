@@ -13,10 +13,10 @@ package example
 // rewrapped but the heading itself should be preserved.
 //
 // Here is a list:
-//   - First item that is long enough to potentially need
-//     rewrapping within the list context.
-//   - Second item.
-//   - Third item with some extra text.
+//  - First item that is long enough to potentially need
+//    rewrapping within the list context.
+//  - Second item.
+//  - Third item with some extra text.
 //
 // And a code block:
 //
