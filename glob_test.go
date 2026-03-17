@@ -276,4 +276,73 @@ func TestExpandGlobs(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, []string{filepath.Join(root, "a.go")}, got)
 	})
+
+	t.Run("recursive_shorthand_all_known_files", func(t *testing.T) {
+		t.Parallel()
+		root := setup(t)
+		got, err := expandGlobs([]string{root + string(filepath.Separator) + "..."}, nil)
+		require.NoError(t, err)
+		// Only .go files are recognized (not .txt), so b.txt and d.txt are excluded.
+		want := []string{
+			filepath.Join(root, "a.go"),
+			filepath.Join(root, "sub", "c.go"),
+			filepath.Join(root, "sub", "deep", "e.go"),
+		}
+		require.ElementsMatch(t, want, got)
+	})
+
+	t.Run("recursive_shorthand_no_prefix", func(t *testing.T) {
+		t.Parallel()
+		root := setup(t)
+		orig, err := os.Getwd()
+		require.NoError(t, err)
+		require.NoError(t, os.Chdir(root))
+		t.Cleanup(func() {
+			require.NoError(t, os.Chdir(orig))
+		})
+
+		got, err := expandGlobs([]string{"..."}, nil)
+		require.NoError(t, err)
+		want := []string{
+			"a.go",
+			filepath.Join("sub", "c.go"),
+			filepath.Join("sub", "deep", "e.go"),
+		}
+		require.ElementsMatch(t, want, got)
+	})
+
+	t.Run("recursive_shorthand_subdirectory", func(t *testing.T) {
+		t.Parallel()
+		root := setup(t)
+		got, err := expandGlobs([]string{filepath.Join(root, "sub") + string(filepath.Separator) + "..."}, nil)
+		require.NoError(t, err)
+		want := []string{
+			filepath.Join(root, "sub", "c.go"),
+			filepath.Join(root, "sub", "deep", "e.go"),
+		}
+		require.ElementsMatch(t, want, got)
+	})
+
+	t.Run("recursive_shorthand_with_exclude", func(t *testing.T) {
+		t.Parallel()
+		root := setup(t)
+		got, err := expandGlobs(
+			[]string{root + string(filepath.Separator) + "..."},
+			[]string{"deep"},
+		)
+		require.NoError(t, err)
+		want := []string{
+			filepath.Join(root, "a.go"),
+			filepath.Join(root, "sub", "c.go"),
+		}
+		require.ElementsMatch(t, want, got)
+	})
+
+	t.Run("recursive_shorthand_no_recognized_files", func(t *testing.T) {
+		t.Parallel()
+		root := setup(t)
+		// empty/ has no files at all.
+		_, err := expandGlobs([]string{filepath.Join(root, "empty") + string(filepath.Separator) + "..."}, nil)
+		require.Error(t, err)
+	})
 }

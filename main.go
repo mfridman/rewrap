@@ -41,6 +41,7 @@ func main() {
   rewrap -c 100 -w main.go                              Rewrap and write in place
   rewrap -c 100 'wrap/*.go'                             Glob: all Go files in wrap/
   rewrap -c 100 '**/*.go'                               Recursive glob: all Go files
+  rewrap -c 100 -w pkg/...                              Recursive: all known files in pkg/
   rewrap -c 100 -w '**/*.go' --exclude testdata,vendor  Skip directories
   cat main.go | rewrap --lang go                        Pipe through stdin`
 		},
@@ -128,6 +129,38 @@ func execRoot(ctx context.Context, s *cli.State) error {
 func expandGlobs(args []string, excludeDirs []string) ([]string, error) {
 	var files []string
 	for _, arg := range args {
+		// Go-style recursive shorthand: "dir/..." or just "..."
+		if arg == "..." || strings.HasSuffix(arg, string(filepath.Separator)+"...") {
+			root := strings.TrimSuffix(arg, "...")
+			root = strings.TrimRight(root, string(filepath.Separator))
+			if root == "" {
+				root = "."
+			}
+			var matches []string
+			err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+				if err != nil {
+					return err
+				}
+				if d.IsDir() {
+					if isExcludedDir(d.Name(), excludeDirs) {
+						return filepath.SkipDir
+					}
+					return nil
+				}
+				if wrap.LanguageFromFilename(d.Name()) != nil {
+					matches = append(matches, path)
+				}
+				return nil
+			})
+			if err != nil {
+				return nil, fmt.Errorf("walk %s: %w", arg, err)
+			}
+			if len(matches) == 0 {
+				return nil, fmt.Errorf("pattern %q matched no files", arg)
+			}
+			files = append(files, matches...)
+			continue
+		}
 		if !strings.ContainsAny(arg, "*?[") {
 			files = append(files, arg)
 			continue
