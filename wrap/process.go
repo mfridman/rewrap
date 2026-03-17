@@ -225,14 +225,16 @@ func renderDocList(list *comment.List, prefix, bareMarker string, column, tabWid
 		if i > 0 && list.ForceBlankBetween {
 			result = append(result, bareMarker)
 		}
-		var bullet string
+		var bullet, listIndent string
 		if item.Number != "" {
 			bullet = item.Number + ". "
+			listIndent = " "
 		} else {
 			bullet = "- "
+			listIndent = "  "
 		}
-		firstPrefix := prefix + " " + bullet
-		contPrefix := prefix + " " + strings.Repeat(" ", len(bullet))
+		firstPrefix := prefix + listIndent + bullet
+		contPrefix := prefix + listIndent + strings.Repeat(" ", len(bullet))
 
 		for j, block := range item.Content {
 			if j > 0 {

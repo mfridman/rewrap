@@ -13,6 +13,13 @@ package example
 //   - Second item.
 //   - Third item with some extra text.
 //
+// Here is a numbered list:
+//
+//  1. Preheat the oven to 350 degrees and line a baking sheet with parchment paper before starting.
+//  2. Mix the dry ingredients together.
+//  3. Fold in the wet ingredients gently until the batter is just combined without any visible streaks of flour remaining.
+//  4. Bake for twenty-five minutes.
+//
 // And a code block:
 //
 //	func hello() {

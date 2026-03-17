@@ -3,6 +3,7 @@ package wrap
 import (
 	"flag"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -96,6 +97,33 @@ func TestIdempotent(t *testing.T) {
 			pass1 := Source(src, lang, column, 4)
 			pass2 := Source(pass1, lang, column, 4)
 			assert.Equal(t, string(pass1), string(pass2), "output is not idempotent")
+		})
+	}
+}
+
+// TestGofmtCompatible verifies that rewrap's Go output is already gofmt-formatted, meaning running
+// gofmt on a golden file produces no changes.
+func TestGofmtCompatible(t *testing.T) {
+	if _, err := exec.LookPath("gofmt"); err != nil {
+		t.Skip("gofmt not found in PATH")
+	}
+	goldens, err := filepath.Glob("testdata/*.go.golden")
+	require.NoError(t, err)
+	require.NotEmpty(t, goldens, "no .go.golden files found in testdata/")
+
+	for _, goldenPath := range goldens {
+		name := filepath.Base(goldenPath)
+		t.Run(name, func(t *testing.T) {
+			golden, err := os.ReadFile(goldenPath)
+			require.NoError(t, err)
+
+			cmd := exec.Command("gofmt", goldenPath)
+			formatted, err := cmd.Output()
+			require.NoError(t, err, "gofmt failed")
+
+			assert.Equal(t, string(golden), string(formatted),
+				"golden file is not gofmt-formatted; run gofmt on it or fix the rewrap output",
+			)
 		})
 	}
 }
