@@ -3,7 +3,7 @@ module github.com/mfridman/rewrap
 go 1.24.0
 
 require (
-	github.com/pressly/cli v0.6.1-0.20260218132452-18c1f3a822c9
+	github.com/pressly/cli v0.7.0
 	github.com/stretchr/testify v1.11.1
 	github.com/yuin/goldmark v1.7.16
 )

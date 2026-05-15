@@ -16,9 +16,20 @@ import (
 
 func main() {
 	root := &cli.Command{
-		Name:      "rewrap",
-		Usage:     "rewrap [flags] [files...]",
-		ShortHelp: "Rewrap comment blocks and text to a specified column width",
+		Name:    "rewrap",
+		Usage:   "rewrap [flags] [files...]",
+		Summary: "Rewrap comment blocks and text to a specified column width",
+		Description: `Rewrap comment blocks and text to a specified column width.
+
+Examples:
+  rewrap main.go                                 Rewrap a single file (default: 100 cols)
+  rewrap -c 80 main.go                           Override column width
+  rewrap -w main.go                              Write result back to file
+  rewrap 'wrap/*.go'                             Glob: all Go files in wrap/
+  rewrap '**/*.go'                               Recursive glob: all Go files
+  rewrap -w pkg/...                              Recursive: all known files in pkg/
+  rewrap -w '**/*.go' --exclude testdata,vendor  Skip directories
+  cat main.go | rewrap --lang go                 Pipe through stdin`,
 		Flags: cli.FlagsFunc(func(f *flag.FlagSet) {
 			f.Int("column", 100, "wrapping column width")
 			f.Bool("write", false, "write result to file instead of stdout")
@@ -27,23 +38,10 @@ func main() {
 			f.Bool("verbose", false, "print each file path when writing")
 			f.String("exclude", "", "comma-separated directory names to exclude")
 		}),
-		FlagOptions: []cli.FlagOption{
+		FlagConfigs: []cli.FlagConfig{
 			{Name: "column", Short: "c"},
 			{Name: "write", Short: "w"},
 			{Name: "verbose", Short: "v"},
-		},
-		UsageFunc: func(c *cli.Command) string {
-			// Temporarily clear UsageFunc to avoid infinite recursion with DefaultUsage.
-			c.UsageFunc = nil
-			s := cli.DefaultUsage(c)
-			return s + "\n\n" + `Examples:
-  rewrap -c 80 main.go                                  Rewrap a single file
-  rewrap -c 100 -w main.go                              Rewrap and write in place
-  rewrap -c 100 'wrap/*.go'                             Glob: all Go files in wrap/
-  rewrap -c 100 '**/*.go'                               Recursive glob: all Go files
-  rewrap -c 100 -w pkg/...                              Recursive: all known files in pkg/
-  rewrap -c 100 -w '**/*.go' --exclude testdata,vendor  Skip directories
-  cat main.go | rewrap --lang go                        Pipe through stdin`
 		},
 		Exec: execRoot,
 	}
