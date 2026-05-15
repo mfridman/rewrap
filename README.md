@@ -30,30 +30,36 @@ Flags:
 
 ## Examples
 
-Rewrap a Go file to 80 columns and print to stdout:
+Print to stdout:
 
 ```
-rewrap -c 80 main.go
+rewrap main.go
 ```
 
 Rewrap in place:
 
 ```
-rewrap -c 100 -w main.go
+rewrap -w main.go
 ```
 
 Glob patterns (quote to prevent shell expansion):
 
 ```
-rewrap -c 100 -w 'wrap/*.go'
-rewrap -c 100 -w '**/*.go'
-rewrap -c 100 -w '**/*.go' --exclude testdata,vendor
+rewrap -w 'wrap/*.go'
+rewrap -w '**/*.go'
+rewrap -w '**/*.go' --exclude testdata,vendor
+```
+
+Go-style recursive shorthand:
+
+```
+rewrap -w pkg/...
 ```
 
 Pipe through stdin:
 
 ```
-cat main.go | rewrap --lang go -c 80
+cat main.go | rewrap --lang go
 ```
 
 ## Supported languages
@@ -66,8 +72,9 @@ Use `--lang text` to treat input as plain text (rewraps everything).
 
 - **Go** - uses `go/doc/comment` for rewrapping, so doc comment syntax (headings, lists, code
   blocks, links) is handled correctly.
-- **Markdown** - uses AST-based parsing. Only paragraph text is rewrapped; headings, code blocks,
-  lists, blockquotes, tables, and other structural elements are preserved verbatim.
+- **Markdown** - uses AST-based parsing. Paragraph text is rewrapped, including paragraphs inside
+  list items and blockquotes. Headings, code blocks, tables, and other structural elements are
+  preserved verbatim.
 
 ## License
 
